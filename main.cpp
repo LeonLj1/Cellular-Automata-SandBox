@@ -33,7 +33,7 @@ void updateSand(int x,int y){
         int left=rand()%2;
 
         if(left){
-            if(x>0 && grid[idx(x-1,x+1)]==EMPTY){
+            if(x>0 && grid[idx(x-1,y+1)]==EMPTY){
                 std::swap(grid[idx(x,y)],grid[idx(x-1,y+1)]);
             }else{
                 if(x<GRID_WIDTH-1 && grid[idx(x+1,y+1)]==EMPTY){
@@ -44,7 +44,7 @@ void updateSand(int x,int y){
             if(x<GRID_WIDTH-1 && grid[idx(x+1,y+1)]==EMPTY){
                 std::swap(grid[idx(x,y)],grid[idx(x+1,y+1)]);
             }else{
-                if(x>0 && grid[idx(x-1,x+1)]==EMPTY){
+                if(x>0 && grid[idx(x-1,y+1)]==EMPTY){
                     std::swap(grid[idx(x,y)],grid[idx(x-1,y+1)]);
                 }
             }
@@ -53,6 +53,8 @@ void updateSand(int x,int y){
 }
 
 void updateWater(int x,int y){
+    if(y+1 >= GRID_HEIGHT) return;
+
     if(grid[idx(x,y+1)]==EMPTY){
         std::swap(grid[idx(x,y)],grid[idx(x,y+1)]);
     }else{
@@ -127,7 +129,7 @@ int main(){
         int gx=mx/CELL_SIZE, gy=my/CELL_SIZE;
 
         if(mouse & SDL_BUTTON(SDL_BUTTON_LEFT)){
-            if(gx>0 && gx<GRID_WIDTH && gy>0 && gy<GRID_HEIGHT){
+            if(gx>=0 && gx<GRID_WIDTH && gy>=0 && gy<GRID_HEIGHT){
                 switch(ch-'0'){
                     case 0: grid[idx(gx,gy)]=EMPTY; break;
                     case 1: grid[idx(gx,gy)]=SAND; break;
@@ -152,8 +154,8 @@ int main(){
         SDL_SetRenderDrawColor(renderer,0,0,0,255);
         SDL_RenderClear(renderer);
 
-        for(int y=0;y<=GRID_HEIGHT;y++){
-            for(int x=0;x<=GRID_WIDTH;x++){
+        for(int y=0;y<GRID_HEIGHT;y++){
+            for(int x=0;x<GRID_WIDTH;x++){
                 if(grid[idx(x,y)]==SAND){
                     SDL_Rect r = {
                         x*CELL_SIZE,
