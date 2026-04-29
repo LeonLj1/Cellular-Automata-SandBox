@@ -1,11 +1,12 @@
 #include <SDL2/SDL.h>
 #include <iostream>
 #include <algorithm>
+#include <math.h>
 
 using namespace std;
 
-const int WIDTH=900;
-const int HEIGHT=600;
+const int WIDTH=1920;
+const int HEIGHT=1080;
 
 const int CELL_SIZE=4;
 
@@ -23,6 +24,40 @@ enum Cell{
 };
 
 int grid[GRID_WIDTH][GRID_HEIGHT];
+
+int surrounded(int x,int y, enum Cell particle){//is grid[x][y] surrounded with some particle type
+    int n=0;//how many of particles surround grid[x][y]
+
+    if(x-1>0 && grid[x-1][y]==particle) n++;
+    if(x+1<GRID_WIDTH-1 && grid[x+1][y]==particle) n++;
+    if(y-1>0 && grid[x][y-1]==particle) n++;
+    if(y+1<GRID_HEIGHT-1 && grid[x][y+1]==particle) n++;
+
+    return n;
+}
+
+int inCircle(int x,int y,int ccx,int ccy,int radius){//x,y coordinates of cell; ccx,ccy coordinates of circle center
+    double d = sqrt((x-ccx)*(x-ccx)+(y-ccy)*(y-ccy));
+
+    if(d<=radius) return 1;
+    else return 0;
+}
+
+void draw(int x, int y, int brushSize,enum Cell particle){//function to make particles
+
+    if(brushSize==0){
+        grid[x][y]=particle;
+        return;
+    }
+
+    for(int cx=x-brushSize;cx<=x+brushSize;cx++){
+        for(int cy=y-brushSize;cy<=y+brushSize;cy++){
+            if(inCircle(cx,cy,x,y,brushSize) && cx>=0 && cx<GRID_WIDTH && cy>=0 && cy<GRID_HEIGHT){
+                grid[cx][cy]=particle;
+            }
+        }
+    }
+}
 
 void updateSand(int x,int y){
     if(y+1>=GRID_HEIGHT) return;
@@ -107,8 +142,21 @@ void updateWater(int x,int y){
 void updateFire(int x,int y){
 
     int fireDesappear=!(rand()%10);
-
     int toSmoke=!(rand()%100);
+
+    if(surrounded(x,y,WATER)){
+        if(x-1>0 && grid[x-1][y]==WATER) grid[x-1][y]=SMOKE;
+        if(x+1<GRID_WIDTH-1 && grid[x+1][y]==WATER) grid[x+1][y]=SMOKE;
+        if(y-1>0 && grid[x][y-1]==WATER) grid[x][y-1]=SMOKE;
+        if(y+1<GRID_HEIGHT-1 && grid[x][y+1]==WATER) grid[x][y+1]=SMOKE;
+
+        grid[x][y]=SMOKE;
+    }
+
+    if(surrounded(x,y,WOOD)){
+        toSmoke=!(rand()%7);
+        fireDesappear=!(rand()%70);
+    }
 
     if(fireDesappear){
         if(toSmoke){
@@ -152,13 +200,13 @@ void updateSmoke(int x,int y){
 
     int toMove=!(rand()%5);
 
-    if(y-1>0 && grid[x][y-1]==EMPTY && toMove){
+    if(y-1>0 && (grid[x][y-1]==EMPTY || grid[x][y-1]==WATER) && toMove){
         swap(grid[x][y],grid[x][y-1]);
     }else{
-        if(x-1>0 && grid[x-1][y-1]==EMPTY && toMove){
+        if(x-1>0 && (grid[x-1][y-1]==EMPTY || grid[x-1][y-1]==WATER) && toMove){
             swap(grid[x][y], grid[x-1][y-1]);
         }else{
-            if(x<GRID_WIDTH-1 && grid[x+1][y-1]==EMPTY && toMove){
+            if(x<GRID_WIDTH-1 && (grid[x+1][y-1]==EMPTY || grid[x+1][y-1]==WATER) && toMove){
                 swap(grid[x][y], grid[x+1][y-1]);
             }
         }
@@ -166,10 +214,19 @@ void updateSmoke(int x,int y){
 }
 
 void updateWood(int x, int y){
+
+    int getOnFire=!(rand()%30);
+
+    if(surrounded(x,y,FIRE) && getOnFire){
+        grid[x][y]=FIRE;
+    }
     
 }
 
 int main(){
+
+    int brushSize=1;
+
     if(SDL_Init(SDL_INIT_VIDEO)!=0){
         cout<<"SDL intit failed!!!\n";
         return -1;
@@ -180,7 +237,7 @@ int main(){
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         WIDTH,HEIGHT,
-        0
+        SDL_WINDOW_FULLSCREEN_DESKTOP
     );
 
     SDL_Renderer* renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
@@ -189,9 +246,10 @@ int main(){
 
     SDL_Event event;
 
+    char ch,chbs='0',chp;//chbs - char for brush size, chp - char for particle
+
     while(running){
 
-        char ch;
         int particle;
 
         while(SDL_PollEvent(&event)){
@@ -199,9 +257,21 @@ int main(){
             else{
                 if(event.type == SDL_TEXTINPUT){
                     ch=event.text.text[0];   
+                    if(ch>='0' && ch<='9'){
+                        chbs=ch;
+                    }else{
+                        chp=ch;
+                    }
                 }
             }
         }
+
+        if(chp=='r'){
+            memset(grid, 0, sizeof(grid));
+            chp='s';
+        }
+
+        brushSize=chbs-'0';
 
         int mx,my;
         Uint32 mouse = SDL_GetMouseState(&mx,&my);
@@ -209,21 +279,21 @@ int main(){
         int gx=mx/CELL_SIZE, gy=my/CELL_SIZE;
 
         if(mouse & SDL_BUTTON(SDL_BUTTON_LEFT)){
-            if(gx>=0 && gx<GRID_WIDTH && gy>=0 && gy<GRID_HEIGHT){
-                switch(ch-'0'){
-                    case 0: grid[gx][gy]=EMPTY; break;
-                    case 1: grid[gx][gy]=SAND; break;
-                    case 2: grid[gx][gy]=WATER; break;
-                    case 3: grid[gx][gy]=STONE; break;
-                    case 4: grid[gx][gy]=WOOD; break;
-                    case 5: grid[gx][gy]=FIRE; break;
-                    case 6: grid[gx][gy]=SMOKE; break;
-                    default: grid[gx][gy]=SAND; break;
+            if(gx>=0 && gx<GRID_WIDTH && gy>=0 && gy<GRID_HEIGHT){//draws particles where mouse points
+                switch(chp){
+                    case 'e': draw(gx,gy,brushSize,EMPTY); break;
+                    case 's': draw(gx,gy,brushSize,SAND); break;
+                    case 'w': draw(gx,gy,brushSize,WATER); break;
+                    case 'k': draw(gx,gy,brushSize,STONE); break;
+                    case 'd': draw(gx,gy,brushSize,WOOD); break;
+                    case 'f': draw(gx,gy,brushSize,FIRE); break;
+                    case 'p': draw(gx,gy,brushSize,SMOKE); break;
+                    default: draw(gx,gy,brushSize,SAND); break;
                  }
             }
         }
 
-        for(int y=GRID_HEIGHT-1;y>=0;y--){
+        for(int y=GRID_HEIGHT-1;y>=0;y--){// for loop for updateing particles
 
             int leftToRight = rand() % 2;
 
@@ -241,6 +311,13 @@ int main(){
                         }else{
                             if(grid[x][y]==SMOKE){
                                 updateSmoke(x,y);
+                            }else{
+                                if(grid[x][y]==WOOD){
+                                    if(surrounded(x,y,WOOD)==4);
+                                    else{
+                                        updateWood(x,y);
+                                    }
+                                }
                             }
                         }
                     }
@@ -251,7 +328,7 @@ int main(){
         SDL_SetRenderDrawColor(renderer,0,0,0,255);
         SDL_RenderClear(renderer);
 
-        for(int y=0;y<GRID_HEIGHT;y++){
+        for(int y=0;y<GRID_HEIGHT;y++){//for loop for rendering particles
             for(int x=0;x<GRID_WIDTH;x++){
                 if(grid[x][y]==SAND){
                     SDL_Rect r = {
@@ -260,6 +337,7 @@ int main(){
                         CELL_SIZE,
                         CELL_SIZE
                     };
+
                     SDL_SetRenderDrawColor(renderer, 194, 178, 128, 255);
                     SDL_RenderFillRect(renderer, &r);
                 }else{
@@ -302,7 +380,15 @@ int main(){
                                         CELL_SIZE,
                                         CELL_SIZE
                                     };
-                                    SDL_SetRenderDrawColor(renderer, 200, 0, 0, 255);
+
+                                    switch(surrounded(x,y,FIRE)){//gives textures to fire
+                                        case 0:SDL_SetRenderDrawColor(renderer, 200, 0, 0, 255);break;
+                                        case 1:SDL_SetRenderDrawColor(renderer, 232, 101, 7, 255);break;
+                                        case 2:SDL_SetRenderDrawColor(renderer, 235, 179, 40, 255);break;
+                                        case 3:SDL_SetRenderDrawColor(renderer, 252, 225, 66, 255);break;
+                                        case 4: SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);break;
+                                    }
+
                                     SDL_RenderFillRect(renderer, &r);
                                 }else{
                                     if(grid[x][y]==SMOKE){
