@@ -2,230 +2,32 @@
 #include <iostream>
 #include <algorithm>
 #include <math.h>
+#include "particles.h"
 
 using namespace std;
 
-const int WIDTH=1920;
-const int HEIGHT=1080;
-
-const int CELL_SIZE=4;
-
-const int GRID_WIDTH=WIDTH/CELL_SIZE;
-const int GRID_HEIGHT=HEIGHT/CELL_SIZE;
-
-enum Cell{
-    EMPTY,
-    SAND,
-    WATER,
-    STONE,
-    WOOD,
-    FIRE,
-    SMOKE
-};
-
-int grid[GRID_WIDTH][GRID_HEIGHT];
-
-int surrounded(int x,int y, enum Cell particle){//is grid[x][y] surrounded with some particle type
-    int n=0;//how many of particles surround grid[x][y]
-
-    if(x-1>0 && grid[x-1][y]==particle) n++;
-    if(x+1<GRID_WIDTH-1 && grid[x+1][y]==particle) n++;
-    if(y-1>0 && grid[x][y-1]==particle) n++;
-    if(y+1<GRID_HEIGHT-1 && grid[x][y+1]==particle) n++;
-
-    return n;
-}
-
-int inCircle(int x,int y,int ccx,int ccy,int radius){//x,y coordinates of cell; ccx,ccy coordinates of circle center
-    double d = sqrt((x-ccx)*(x-ccx)+(y-ccy)*(y-ccy));
-
-    if(d<=radius) return 1;
-    else return 0;
-}
-
-void draw(int x, int y, int brushSize,enum Cell particle){//function to make particles
-
-    if(brushSize==0){
-        grid[x][y]=particle;
-        return;
-    }
-
-    for(int cx=x-brushSize;cx<=x+brushSize;cx++){
-        for(int cy=y-brushSize;cy<=y+brushSize;cy++){
-            if(inCircle(cx,cy,x,y,brushSize) && cx>=0 && cx<GRID_WIDTH && cy>=0 && cy<GRID_HEIGHT){
-                grid[cx][cy]=particle;
+Uint32 cellColor(int x, int y){
+    switch(grid[x][y]){
+        case SAND:  return 0xC2B280FF;
+        case WATER: return 0x006994FF;
+        case STONE: return 0x808080FF;
+        case WOOD:  return 0x9C7740FF;
+        case SMOKE: return 0xC8C8C8FF;
+        case FIRE:
+            switch(surrounded(x,y,FIRE)){
+                case 0: return 0xC80000FF;
+                case 1: return 0xE86507FF;
+                case 2: return 0xEBB328FF;
+                case 3: return 0xFCE142FF;
+                case 4: return 0xFFFFFFFF;
             }
-        }
+        default: return 0x000000FF;
     }
-}
-
-void updateSand(int x,int y){
-    if(y+1>=GRID_HEIGHT) return;
-
-    int sandShift=!(rand()%15);
-
-    if(grid[x][y+1]==EMPTY || (sandShift && grid[x][y+1]==WATER)){
-        swap(grid[x][y],grid[x][y+1]);
-    }else{
-        
-        int left=rand()%2;
-
-        sandShift=!(rand()%15);
-
-        if(left){
-            if((x>0 && grid[x-1][y+1]==EMPTY) || (x>0 && sandShift && grid[x-1][y+1]==WATER)){
-                swap(grid[x][y],grid[x-1][y+1]);
-            }else{
-                sandShift=!(rand()%15);
-                if((x<GRID_WIDTH-1 && grid[x+1][y+1]==EMPTY) || (x<GRID_WIDTH-1 && sandShift && grid[x+1][y+1]==WATER)){
-                    swap(grid[x][y],grid[x+1][y+1]);
-                }
-            }
-        }else{
-            sandShift=!(rand()%15);
-            if((x<GRID_WIDTH-1 && grid[x+1][y+1]==EMPTY) || (x<GRID_WIDTH-1 && sandShift && grid[x+1][y+1]==WATER)){
-                swap(grid[x][y],grid[x+1][y+1]);
-            }else{
-                sandShift=!(rand()%15);
-                if((x>0 && grid[x-1][y+1]==EMPTY) || (x>0 && sandShift && grid[x-1][y+1]==WATER)){
-                    swap(grid[x][y],grid[x-1][y+1]);
-                }
-            }
-        }
-    }
-}
-
-void updateWater(int x,int y){
-    if(y+1 >= GRID_HEIGHT) return;
-
-    if(grid[x][y+1]==EMPTY){
-        swap(grid[x][y],grid[x][y+1]);
-    }else{
-
-        int dis=rand()%3+1;
-
-        //if(grid[x+dis-1][y]!=EMPTY || grid[x+dis-2][y]!=EMPTY || grid[x-dis-1][y]!=EMPTY || grid[x-dis-2][y]!=EMPTY) return;
-
-        if((x>dis-1 && grid[x-dis][y]==EMPTY && grid[x+1][y]!=EMPTY) || x+1>=GRID_WIDTH){
-            swap(grid[x][y],grid[x-dis][y]);
-            return;
-        }else{
-            if((x<GRID_WIDTH-dis && grid[x+dis][y]==EMPTY && grid[x-1][y]!=EMPTY) || x-1<=0){
-                swap(grid[x][y],grid[x+dis][y]);
-                return;
-            } 
-        }
-
-        int left=rand()%2;
-
-        if(left){
-            if(x>dis-1 && grid[x-dis][y]==EMPTY){
-                swap(grid[x][y],grid[x-dis][y]);
-            }else{
-                if(x<GRID_WIDTH-dis && grid[x+dis][y]==EMPTY){
-                    swap(grid[x][y],grid[x+dis][y]);
-                }
-            }
-        }else{
-            if(x<GRID_WIDTH-dis && grid[x+dis][y]==EMPTY){
-                swap(grid[x][y],grid[x+dis][y]);
-            }else{
-                if(x>dis-1 && grid[x-dis][y]==EMPTY){
-                    swap(grid[x][y],grid[x-dis][y]);
-                }
-           }
-        }
-    }
-
-}
-
-void updateFire(int x,int y){
-
-    int fireDesappear=!(rand()%10);
-    int toSmoke=!(rand()%100);
-
-    if(surrounded(x,y,WATER)){
-        if(x-1>0 && grid[x-1][y]==WATER) grid[x-1][y]=SMOKE;
-        if(x+1<GRID_WIDTH-1 && grid[x+1][y]==WATER) grid[x+1][y]=SMOKE;
-        if(y-1>0 && grid[x][y-1]==WATER) grid[x][y-1]=SMOKE;
-        if(y+1<GRID_HEIGHT-1 && grid[x][y+1]==WATER) grid[x][y+1]=SMOKE;
-
-        grid[x][y]=SMOKE;
-    }
-
-    if(surrounded(x,y,WOOD)){
-        toSmoke=!(rand()%7);
-        fireDesappear=!(rand()%70);
-    }
-
-    if(fireDesappear){
-        if(toSmoke){
-            grid[x][y]=SMOKE;
-        }else{
-            grid[x][y]=EMPTY;
-        }
-        return;
-    }
-
-    if(y-1<=0) return;
-
-    int spread=!(rand()%20);
-
-    if(y-1>0 && grid[x][y-1]==EMPTY && spread){
-        grid[x][y-1]=FIRE;
-    }else{
-        spread=!(rand()%20);
-        if(x-1>0 && y-1>0 && grid[x-1][y-1]==EMPTY && spread){
-            grid[x-1][y-1]=FIRE;
-        }else{
-            spread=!(rand()%20);
-            if(x+1<GRID_WIDTH-1 && y-1>0 && grid[x+1][y-1]==EMPTY && spread){
-                grid[x+1][y-1]=FIRE;
-            }
-        }
-    }
-
-}
-
-void updateSmoke(int x,int y){
-
-    int desappear=!(rand()%100);
-
-    if(desappear){
-        grid[x][y]=EMPTY;
-        return;
-    }
-
-    if(y-1<=0) return;
-
-    int toMove=!(rand()%5);
-
-    if(y-1>0 && (grid[x][y-1]==EMPTY || grid[x][y-1]==WATER) && toMove){
-        swap(grid[x][y],grid[x][y-1]);
-    }else{
-        if(x-1>0 && (grid[x-1][y-1]==EMPTY || grid[x-1][y-1]==WATER) && toMove){
-            swap(grid[x][y], grid[x-1][y-1]);
-        }else{
-            if(x<GRID_WIDTH-1 && (grid[x+1][y-1]==EMPTY || grid[x+1][y-1]==WATER) && toMove){
-                swap(grid[x][y], grid[x+1][y-1]);
-            }
-        }
-    }
-}
-
-void updateWood(int x, int y){
-
-    int getOnFire=!(rand()%30);
-
-    if(surrounded(x,y,FIRE) && getOnFire){
-        grid[x][y]=FIRE;
-    }
-    
 }
 
 int main(){
 
-    int brushSize=1;
+    int brushSize=100;
 
     if(SDL_Init(SDL_INIT_VIDEO)!=0){
         cout<<"SDL intit failed!!!\n";
@@ -241,6 +43,14 @@ int main(){
     );
 
     SDL_Renderer* renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
+
+    SDL_Texture* texture = SDL_CreateTexture(
+        renderer,
+        SDL_PIXELFORMAT_RGBA8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        GRID_WIDTH,
+        GRID_HEIGHT
+    );
 
     int running=1;
 
@@ -300,117 +110,34 @@ int main(){
             for(int i=0;i<GRID_WIDTH;i++){
                 int x = leftToRight ? i : GRID_WIDTH-1-i;
 
-                if(grid[x][y]==SAND){
-                    updateSand(x,y);
-                }else{
-                    if(grid[x][y]==WATER){
-                        updateWater(x,y);
-                    }else{
-                        if(grid[x][y]==FIRE){
-                            updateFire(x,y);
-                        }else{
-                            if(grid[x][y]==SMOKE){
-                                updateSmoke(x,y);
-                            }else{
-                                if(grid[x][y]==WOOD){
-                                    if(surrounded(x,y,WOOD)==4);
-                                    else{
-                                        updateWood(x,y);
-                                    }
-                                }
-                            }
-                        }
-                    }
+                switch (grid[x][y]){
+                    case SAND: updateSand(x,y); break;
+                    case WATER: updateWater(x,y); break;
+                    case FIRE: updateFire(x,y); break;
+                    case SMOKE: updateSmoke(x,y); break;
+                    case WOOD: if(surrounded(x,y,WOOD)==4);
+                               else updateWood(x,y); break;
                 }
             }
         }
 
-        SDL_SetRenderDrawColor(renderer,0,0,0,255);
-        SDL_RenderClear(renderer);
+        Uint32* pixels;
 
-        for(int y=0;y<GRID_HEIGHT;y++){//for loop for rendering particles
-            for(int x=0;x<GRID_WIDTH;x++){
-                if(grid[x][y]==SAND){
-                    SDL_Rect r = {
-                        x*CELL_SIZE,
-                        y*CELL_SIZE,
-                        CELL_SIZE,
-                        CELL_SIZE
-                    };
+        int pitch;
 
-                    SDL_SetRenderDrawColor(renderer, 194, 178, 128, 255);
-                    SDL_RenderFillRect(renderer, &r);
-                }else{
-                    if(grid[x][y]==WATER){
-                        SDL_Rect r = {
-                            x*CELL_SIZE,
-                            y*CELL_SIZE,
-                            CELL_SIZE,
-                            CELL_SIZE
-                        };
+        SDL_LockTexture(texture, NULL, (void**)&pixels, &pitch);
 
-                        SDL_SetRenderDrawColor(renderer, 0, 105, 148, 255);
-                        SDL_RenderFillRect(renderer, &r);
-                    }else{
-                        if(grid[x][y]==STONE){
-                            SDL_Rect r = {
-                                x*CELL_SIZE,
-                                y*CELL_SIZE,
-                                CELL_SIZE,
-                                CELL_SIZE
-                            };
-
-                            SDL_SetRenderDrawColor(renderer, 128, 128, 128, 255);
-                            SDL_RenderFillRect(renderer, &r);
-                        }else{
-                            if(grid[x][y]==WOOD){
-                                SDL_Rect r={
-                                    x*CELL_SIZE,
-                                    y*CELL_SIZE,
-                                    CELL_SIZE,
-                                    CELL_SIZE
-                                };
-                                SDL_SetRenderDrawColor(renderer, 156, 119, 64, 255);
-                                SDL_RenderFillRect(renderer, &r);
-                            }else{
-                                if(grid[x][y]==FIRE){
-                                    SDL_Rect r={
-                                        x*CELL_SIZE,
-                                        y*CELL_SIZE,
-                                        CELL_SIZE,
-                                        CELL_SIZE
-                                    };
-
-                                    switch(surrounded(x,y,FIRE)){//gives textures to fire
-                                        case 0:SDL_SetRenderDrawColor(renderer, 200, 0, 0, 255);break;
-                                        case 1:SDL_SetRenderDrawColor(renderer, 232, 101, 7, 255);break;
-                                        case 2:SDL_SetRenderDrawColor(renderer, 235, 179, 40, 255);break;
-                                        case 3:SDL_SetRenderDrawColor(renderer, 252, 225, 66, 255);break;
-                                        case 4: SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);break;
-                                    }
-
-                                    SDL_RenderFillRect(renderer, &r);
-                                }else{
-                                    if(grid[x][y]==SMOKE){
-                                        SDL_Rect r={
-                                            x*CELL_SIZE,
-                                            y*CELL_SIZE,
-                                            CELL_SIZE,
-                                            CELL_SIZE
-                                        };
-                                        SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
-                                        SDL_RenderFillRect(renderer, &r);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+        for(int y = 0; y < GRID_HEIGHT; y++){
+            for(int x = 0; x < GRID_WIDTH; x++){
+                pixels[y * (pitch/4) + x] = cellColor(x, y);
             }
         }
 
+        SDL_UnlockTexture(texture);
+
+        SDL_RenderCopy(renderer, texture, NULL, NULL);
         SDL_RenderPresent(renderer);
-        SDL_Delay(2);
+        SDL_Delay(3);
 
     }
 
