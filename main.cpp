@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include <math.h>
+#include <string>
 #include "particles.h"
 
 using namespace std;
@@ -147,8 +148,8 @@ int main(){
                     chp='q';
                     char mapName[100]="";
 
-                    printf("Type the name of map you want to save:\n");
-                    scanf("%s",mapName);
+                    cout << "Type the name of map you want to save:\n";
+                    cin >> mapName;
 
                     char directory[200]="maps/";
                     strcat(directory,mapName);
@@ -172,8 +173,8 @@ int main(){
             chp='s';
 
             char mapName[100]="";
-            printf("Type the name of map you want to load:\n");
-            scanf("%s",mapName);
+            cout << "Type the name of map you want to load:\n";
+            cin >> mapName;
 
             char directory[200]="maps/";
             strcat(directory,mapName);
