@@ -1,8 +1,8 @@
 #ifndef PARTICLES_H
 #define PARTICLES_H
 
-const int WIDTH = 1920;
-const int HEIGHT = 1080;
+const int WIDTH = 800;
+const int HEIGHT = 800;
 
 const int CELL_SIZE = 4;
 const int GRID_WIDTH = WIDTH/CELL_SIZE;
