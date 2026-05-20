@@ -18,7 +18,6 @@ This project implements a falling sand simulation with various particle types th
 - **Empty** - Vacuum that particles can move into
 
 ### Functionality
-- 🎨 Real-time particle visualization with 800x800 grid
 - 🖱️ Interactive drawing tools with adjustable brush size
 - 🔥 Physics-based particle interactions (gravity, spreading, combustion)
 - 💾 Save and load custom maps
@@ -56,14 +55,40 @@ This project implements a falling sand simulation with various particle types th
 - SDL2 library
 - SDL2 development headers
 
-### Compilation
+## Compilation
+
+### Linux
+
+- First install SDL2 (Look how, it depends on what distro are you using)
+
 ```bash
-g++ -o sandbox main.cpp particles.cpp -lSDL2
+g++ *.cpp -o main -lSDL2
 ```
 
-### Running
+- Then run it with
+
 ```bash
-./sandbox
+./main
+```
+
+### Windows
+
+Because instaling SDL on Windows is boaring just install WSL (Windows Subsystem for Linux), it is useful
+
+- Folow instructions from: https://learn.microsoft.com/en-us/windows/wsl/install
+- When instaled connect VS Code to your WSL (Please use VS Code it is the best)
+- Then install SDL2 (Look how, it depends on what distro are you using)
+
+- Then compile it
+  
+```bash
+g++ *.cpp -o main -lSDL2
+```
+
+-And run it
+
+```bash
+./main
 ```
 
 ## Project Structure
@@ -88,9 +113,6 @@ Each particle type has specific update rules:
 - **Smoke**: Rises upward and slowly disperses
 - **Wood**: Burns when surrounded by fire, converting to smoke
 
-### Grid System
-The simulation runs on a 200x200 cell grid (800x800 pixels at 4px per cell). Each frame, particles are updated based on their type and interactions with neighbors.
-
 ## Map System
 
 Save and load custom scenarios:
@@ -99,6 +121,7 @@ Save and load custom scenarios:
 3. Press **a** to save - you'll be prompted for a map name
 4. Press **q** to exit editor
 5. Press **l** to load a previously saved map
+- To load or save a map you will need to type name of map in terminal
 
 Maps are stored in the `maps/` directory as text files.
 
@@ -110,11 +133,8 @@ Maps are stored in the `maps/` directory as text files.
 
 ## Future Enhancements
 
-- Additional particle types (oil, acid, etc.)
-- Temperature-based interactions
-- Pressure mechanics
-- Advanced visualization modes
-- Performance optimizations for larger grids
+- Additional particle types (lava, acid, etc.)
+- Explosions
 
 ## Author
 
