@@ -1,10 +1,31 @@
-#include "particles.h"
+#include "particles.hpp"
 #include <algorithm>
 #include <math.h>
+#include <SDL2/SDL.h>
 
 using namespace std;
 
 int grid[GRID_WIDTH][GRID_HEIGHT];
+
+
+Uint32 cellColor(int x, int y){
+    switch(grid[x][y]){
+        case SAND:  return 0xC2B280FF;
+        case WATER: return 0x006994FF;
+        case STONE: return 0x808080FF;
+        case WOOD:  return 0x9C7740FF;
+        case SMOKE: return 0xC8C8C8FF;
+        case FIRE:
+            switch(surrounded(x,y,FIRE)){
+                case 0: return 0xC80000FF;
+                case 1: return 0xE86507FF;
+                case 2: return 0xEBB328FF;
+                case 3: return 0xFCE142FF;
+                case 4: return 0xFFFFFFFF;
+            }
+        default: return 0x000000FF;
+    }
+}
 
 int surrounded(int x,int y, enum Cell particle){//is grid[x][y] surrounded with some particle type
     int n=0;//how many of particles surround grid[x][y]

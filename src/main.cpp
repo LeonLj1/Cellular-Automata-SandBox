@@ -1,32 +1,22 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <iostream>
 #include <algorithm>
 #include <math.h>
 #include <string>
-#include "particles.h"
+#include <particles.hpp>
+#include <gui.hpp>
 
 using namespace std;
 
-Uint32 cellColor(int x, int y){
-    switch(grid[x][y]){
-        case SAND:  return 0xC2B280FF;
-        case WATER: return 0x006994FF;
-        case STONE: return 0x808080FF;
-        case WOOD:  return 0x9C7740FF;
-        case SMOKE: return 0xC8C8C8FF;
-        case FIRE:
-            switch(surrounded(x,y,FIRE)){
-                case 0: return 0xC80000FF;
-                case 1: return 0xE86507FF;
-                case 2: return 0xEBB328FF;
-                case 3: return 0xFCE142FF;
-                case 4: return 0xFFFFFFFF;
-            }
-        default: return 0x000000FF;
-    }
-}
+SDL_Window* window = nullptr;
+SDL_Renderer* renderer = nullptr;
+SDL_Texture* texture = nullptr;
+SDL_Event event;
+TTF_Font* Font = nullptr;
+SDL_Color textColor = {255, 255, 255};
 
-int main(){
+int main(int argc, char* argv[]){
 
     int brushSize=100;
 
@@ -35,7 +25,12 @@ int main(){
         return -1;
     }
 
-    SDL_Window* window=SDL_CreateWindow(
+    if(TTF_Init() == -1){
+        cout << "TTF Failed!!!: " << TTF_GetError() << endl;
+        return -1;
+    }
+
+    window=SDL_CreateWindow(
         "Falling sand",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
@@ -43,9 +38,9 @@ int main(){
         0
     );
 
-    SDL_Renderer* renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
+    renderer=SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED);
 
-    SDL_Texture* texture = SDL_CreateTexture(
+    texture = SDL_CreateTexture(
         renderer,
         SDL_PIXELFORMAT_RGBA8888,
         SDL_TEXTUREACCESS_STREAMING,
@@ -53,15 +48,19 @@ int main(){
         GRID_HEIGHT
     );
 
-    int running=1;
+    Font = TTF_OpenFont("assets/Font.ttf", 24);
 
-    SDL_Event event;
+    if(Font == nullptr) {
+        cout << "Failed to open Font. SDL_Error: " << TTF_GetError() << "\n";
+    }
+
+    MenuButton menu(10,10,50,30);
+
+    int running=1;
 
     char ch,chbs='0',chp='s';//chbs - char for brush size, chp - char for particle
 
     while(running){
-
-        int particle;
 
         while(SDL_PollEvent(&event)){
             if(event.type == SDL_QUIT) running=0;
@@ -151,7 +150,7 @@ int main(){
                     cout << "Type the name of map you want to save:\n";
                     cin >> mapName;
 
-                    char directory[200]="maps/";
+                    char directory[200]="assets/maps/";
                     strcat(directory,mapName);
 
                     FILE* mapFile = fopen(directory,"w");
@@ -176,10 +175,24 @@ int main(){
             cout << "Type the name of map you want to load:\n";
             cin >> mapName;
 
-            char directory[200]="maps/";
+            char directory[200]="assets/maps/";
             strcat(directory,mapName);
 
             FILE* mapFile = fopen(directory,"r");
+
+            if( mapFile == NULL){
+                while(mapFile == NULL){
+                cout << "Invalid map!!!" << endl;
+                cout << "Type the name of map you want to load:\n";
+                cin >> mapName;
+
+                char directory[200]="assets/maps/";
+                strcat(directory,mapName);
+
+                mapFile = fopen(directory,"r");
+                }
+            }
+
             for(int y=0;y<GRID_HEIGHT;y++){
                 for(int x=0;x<GRID_WIDTH;x++){
                     fscanf(mapFile,"%d ",&grid[x][y]);
@@ -198,8 +211,77 @@ int main(){
         int mx,my;
         Uint32 mouse = SDL_GetMouseState(&mx,&my);
 
-        int gx=mx/CELL_SIZE, gy=my/CELL_SIZE;
+        if(mouse && SDL_BUTTON(SDL_BUTTON_LEFT) && menu.inButton(mx,my)){
+            menu.click();
+            menu.isClicked = true;
 
+            SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+            ControlsButton controls(300, 270, 200, 80, "Controls");
+            MapModeButton MapMode(300, 360, 200, 80, "Map Mode");
+            LoadButton load(300, 450, 200, 80, "Load Map");
+
+            menu.unclicked();
+
+            while(menu.isClicked){
+
+                while(SDL_PollEvent(&event)){
+                    if(event.type == SDL_QUIT){
+                        menu.isClicked = false;
+                        running = false;
+                    }else{
+                        if(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE){
+                            menu.isClicked = false;
+                        }else{
+                            if(event.type == SDL_MOUSEBUTTONDOWN){
+                                int mx,my;
+                                mouse = SDL_GetMouseState(&mx, &my);
+                                if(menu.inButton(mx,my)){
+                                    menu.click();
+                                    continue;
+                                }
+                                if(controls.inButton(mx,my)){ 
+                                    SDL_RenderCopy(renderer, texture, NULL, NULL);
+                                    MapMode.clear();
+                                    load.clear();
+                                    controls.click();
+                                    controls.show();
+                                    MapMode.show();
+                                    load.show();
+                                    menu.unclicked();
+                                    continue;
+                                }
+                                if(MapMode.inButton(mx,my)){
+                                    SDL_RenderCopy(renderer, texture, NULL, NULL);
+                                    controls.clear();
+                                    load.clear();
+                                    MapMode.click();
+                                    controls.show();
+                                    MapMode.show();
+                                    load.show();
+                                    menu.unclicked();
+                                    continue;
+                                }
+                                if(load.inButton(mx,my)){
+                                    SDL_RenderCopy(renderer, texture, NULL, NULL);
+                                    controls.clear();
+                                    MapMode.clear();
+                                    load.click();
+                                    controls.show();
+                                    MapMode.show();
+                                    load.show();
+                                    menu.unclicked();
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        int gx=mx/CELL_SIZE, gy=my/CELL_SIZE;
+        
         if(mouse & SDL_BUTTON(SDL_BUTTON_LEFT)){
             if(gx>=0 && gx<GRID_WIDTH && gy>=0 && gy<GRID_HEIGHT){//draws particles where mouse points
                 switch(chp){
@@ -211,7 +293,7 @@ int main(){
                     case 'f': draw(gx,gy,brushSize,FIRE); break;
                     case 'p': draw(gx,gy,brushSize,SMOKE); break;
                     default: draw(gx,gy,brushSize,SAND); break;
-                 }
+                }
             }
         }
 
@@ -227,8 +309,8 @@ int main(){
                     case WATER: updateWater(x,y); break;
                     case FIRE: updateFire(x,y); break;
                     case SMOKE: updateSmoke(x,y); break;
-                    case WOOD: if(surrounded(x,y,WOOD)==4);
-                               else updateWood(x,y); break;
+                    case WOOD: if(surrounded(x,y,WOOD)==4) break;
+                                updateWood(x,y); break;
                 }
             }
         }
@@ -248,7 +330,7 @@ int main(){
         SDL_UnlockTexture(texture);
 
         SDL_RenderCopy(renderer, texture, NULL, NULL);
-        SDL_RenderPresent(renderer);
+        menu.unclicked();
         SDL_Delay(3);
 
     }

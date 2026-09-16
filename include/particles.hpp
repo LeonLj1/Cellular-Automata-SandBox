@@ -1,5 +1,7 @@
-#ifndef PARTICLES_H
-#define PARTICLES_H
+#ifndef PARTICLES_HPP
+#define PARTICLES_HPP
+
+#include <SDL2/SDL.h>
 
 const int WIDTH = 800;
 const int HEIGHT = 800;
@@ -19,6 +21,8 @@ enum Cell {
 };
 
 extern int grid[GRID_WIDTH][GRID_HEIGHT];
+
+Uint32 cellColor(int x, int y);
 
 int surrounded(int x, int y, enum Cell particle);
 int inCircle(int x, int y, int ccx, int ccy, int radius);
