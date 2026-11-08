@@ -154,6 +154,10 @@ int main(int argc, char* argv[]){
                     strcat(directory,mapName);
 
                     FILE* mapFile = fopen(directory,"w");
+                    if(mapFile==NULL){ 
+                        perror("fopen");
+                        continue;
+                    }
                     
                     for(int y=0;y<GRID_HEIGHT;y++){
                         for(int x=0;x<GRID_WIDTH;x++){
@@ -179,7 +183,7 @@ int main(int argc, char* argv[]){
             strcat(directory,mapName);
 
             FILE* mapFile = fopen(directory,"r");
-
+            
             if( mapFile == NULL){
                 while(mapFile == NULL){
                 cout << "Invalid map!!!" << endl;
